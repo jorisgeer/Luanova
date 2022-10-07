@@ -1,0 +1,114 @@
+# lua.syn - syntax definitions for Lua language
+
+#  This file is part of Luanova, a fresh implementation of Lua.
+
+#  Copyright © 2022 Joris van der Geer.
+
+#  Luanova is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+
+#  Luanova is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#  GNU General Public License for more details.
+
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program, typically in the file License.txt
+#  If not, see http://www.gnu.org/licenses.
+
+# This file is to be processed by gensyn into parser tables and defines for a LL(1-2) predictive parser
+
+# Grammar consists of unindented rules aka nonterminals followed by indented productions aka alternatives
+# After a production, a backtick `introduces a production name and AST node type
+# Terminals start with a capital.
+# (Term1 | Term2) is a virtual terminal matching either T1 or T2
+# sym+ is one or more. sym* is zero or more. Sym? is zero or one
+# ?( sym1 sym2 sym3 ?) is an optional sequence
+
+# *arg +, is a list of ( arg , arg , ...) ending at a non-comma
+
+# ? at the start indicates ambiguity and creates additional LL(2) tables for these productions
+
+# If a production name has an =0, or is absent, no node is created
+
+# Storables [ = literal, id,m operator ] become leaf nodes and any production including them
+# will become a node for the parent production
+
+language lua
+minver 37
+version 0.1.0
+author joris
+
+requires gensyn 0.1+
+start stmts
+
+table
+
+stmts
+  *stmt +; `stmt=0
+
+stmt
+  expLst ?( (=|Aas) expLst ?) `asgnst
+  :: Id :: `label
+  Ctlxfer  `ctlxfer
+  Goto Id `goto
+  Do block End `do
+  While expr Do block End `while
+  Repeat block Until expr `repeat
+  If expr Then block elsif ?( Else block ?) End `if
+  For namlst (=|In) Do block End `forit
+  Local atrnamlst ?( = explst ?)
+  { stmts } `mod
+
+block
+  stmts ?( Return expr ?) ; `blk=1
+
+dotlst
+  *Id +.
+
+namlst
+  *(Id|Ell) +,
+
+atrnamlst
+  *Id ?( < Id > ?) +,
+
+args
+  ( explst )
+  Slit
+
+elsif
+  *Elseif expr Then block
+
+field
+  [ expr ] = expr
+  primex ?( = expr ?)
+
+fldlst
+  field +(,|;)
+
+expLst
+  +expr  +,
+
+explst
+  *expr  +,
+
+# --- expressions ---
+
+primsfx
+  ?( : Id ?) ( explst ) `fncal
+  [ expr ] `ndxpr
+  { fldlst } `tblexp
+  . Id `ndxprx
+
+primex
+  (Id|Nlit|Slit|Ell|True|False|Nil) primsfx?
+  ( expr ) `grpexp
+  Function dotlst ?( : Id ?) args block End `fndef
+
+uexp
+  Op? primex `uexp
+
+expr # building block for binary exprs
+  +uexp +Op `pexp

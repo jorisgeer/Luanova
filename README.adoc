@@ -1,0 +1,23 @@
+== Introduction
+   Luanova implements Lua with emphasis on efficiency.
+
+== Status
+  Early stage, work in progress.
+  Lexer generator and lexer working.
+  Parser generator and parser working, grammar TODO
+  Most other parts TODO
+
+== Building
+
+=== Recommended
+  Run
+    build.sh
+  in the repository root.
+
+  Add
+    -g
+  to run the lexer and parser generators
+
+=== Custom
+  Building can be as simple as
+    cc -o lua *.c -lm
